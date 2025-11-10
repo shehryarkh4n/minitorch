@@ -39,7 +39,7 @@ class Module:
         "Set the mode of this module and all descendent modules to `eval`."
         self.training = False
         for child in self._modules.values()
-            child.train()
+            child.eval()
 
     def named_parameters(self) -> Sequence[Tuple[str, Parameter]]:
         """
