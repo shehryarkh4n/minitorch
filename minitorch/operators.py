@@ -36,7 +36,7 @@ def lt(x: float, y: float) -> float:
 
 def eq(x: float, y: float) -> float:
     "$f(x) =$ 1.0 if x is equal to y else 0.0"
-    return x == y
+    return 1.0 if x == y else 0.0
 
 
 def max(x: float, y: float) -> float:
@@ -72,7 +72,7 @@ def relu(x: float) -> float:
 
     (See https://en.wikipedia.org/wiki/Rectifier_(neural_networks) .)
     """
-    return x if x > 0 else 0
+    return x if x > 0.0 else 0.0
 
 
 EPS = 1e-6
