@@ -38,7 +38,7 @@ class Module:
     def eval(self) -> None:
         "Set the mode of this module and all descendent modules to `eval`."
         self.training = False
-        for child in self._modules.values()
+        for child in self._modules.values():
             child.eval()
 
     def named_parameters(self) -> Sequence[Tuple[str, Parameter]]:
