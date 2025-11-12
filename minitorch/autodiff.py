@@ -66,8 +66,24 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
     Returns:
         Non-constant Variables in topological order starting from the right.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError("Need to implement for Task 1.4")
+
+    topo: Iterable[Variable] = []
+    visited: Iterable[int] = set()
+
+    def dfs(variable: Variable):
+        if variable.unique_id in visited:
+            return
+
+        visited.add(variable.unique_id)
+
+        for parent in variable.parents:
+            dfs(parent)
+
+        if not variable.is_constant():
+            topo.append(variable)
+
+    dfs(variable)
+    return topo
 
 
 def backpropagate(variable: Variable, deriv: Any) -> None:
@@ -81,8 +97,24 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
 
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError("Need to implement for Task 1.4")
+    queue = topological_sort(variable)
+    derivs = {variable.unique_id: deriv}
+
+    # We also need a quick way to map id → object for accumulate_derivative calls
+    id_to_var = {var.unique_id: var for var in queue}
+
+    for var in reversed(queue):
+        d_output = derivs[var.unique_id]
+
+        if var.is_leaf():
+            var.accumulate_derivative(d_output)
+            continue
+
+        for parent, d_parent in var.chain_rule(d_output):
+            pid = parent.unique_id
+            derivs[pid] = derivs.get(pid, 0.0) + d_parent
+            id_to_var[pid] = parent  # ensure mapping exists
+    return
 
 
 @dataclass
