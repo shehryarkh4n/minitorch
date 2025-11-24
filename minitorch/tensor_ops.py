@@ -20,8 +20,7 @@ if TYPE_CHECKING:
 
 
 class MapProto(Protocol):
-    def __call__(self, x: Tensor, out: Optional[Tensor] = ..., /) -> Tensor:
-        ...
+    def __call__(self, x: Tensor, out: Optional[Tensor] = ..., /) -> Tensor: ...
 
 
 class TensorOps:
@@ -136,7 +135,7 @@ class SimpleOps(TensorOps):
 
     @staticmethod
     def zip(
-        fn: Callable[[float, float], float]
+        fn: Callable[[float, float], float],
     ) -> Callable[["Tensor", "Tensor"], "Tensor"]:
         """
         Higher-order tensor zip function ::
@@ -228,10 +227,8 @@ class SimpleOps(TensorOps):
 
 
 # Implementations.
-
-
 def tensor_map(
-    fn: Callable[[float], float]
+    fn: Callable[[float], float],
 ) -> Callable[[Storage, Shape, Strides, Storage, Shape, Strides], None]:
     """
     Low-level implementation of tensor map between
@@ -264,14 +261,30 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError('Need to implement for Task 2.3')
+        # Loop over the total out_shape:
+        for i in range(len(out)):
+            # get the out_index using the to_index func
+            out_index = np.zeros(len(out_shape))
+            to_index(i, out_shape, out_index)
+
+            # Pass this to broadcast_index func to manipulate the in_index values
+            in_index = np.zeros(len(in_shape))
+            broadcast_index(out_index, out_shape, in_shape, in_index)
+
+            # get exact positions
+            in_pos = index_to_position(in_index, in_strides)
+            out_pos = index_to_position(out_index, out_strides)
+
+            # run the map fn now
+            x = in_storage[int(in_pos)]
+            y = fn(x)
+            out[int(out_pos)] = y
 
     return _map
 
 
 def tensor_zip(
-    fn: Callable[[float, float], float]
+    fn: Callable[[float, float], float],
 ) -> Callable[
     [Storage, Shape, Strides, Storage, Shape, Strides, Storage, Shape, Strides], None
 ]:
@@ -309,14 +322,36 @@ def tensor_zip(
         b_shape: Shape,
         b_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError('Need to implement for Task 2.3')
+        # same concept but for two arrays at once?
+
+        for i in range(len(out)):
+            # get the out_index using the to_index func
+            out_index = np.zeros(len(out_shape))
+            to_index(i, out_shape, out_index)
+
+            # Pass this to broadcast_index func to manipulate the in_index values
+            # But do it for both shapes
+            a_in_index = np.zeros(len(a_shape))
+            broadcast_index(out_index, out_shape, a_shape, a_in_index)
+            b_in_index = np.zeros(len(b_shape))
+            broadcast_index(out_index, out_shape, b_shape, b_in_index)
+
+            # get exact positions
+            a_in_pos = index_to_position(a_in_index, a_strides)
+            b_in_pos = index_to_position(b_in_index, b_strides)
+            out_pos = index_to_position(out_index, out_strides)
+
+            # apply fn with both a and b?
+            a_x = a_storage[int(a_in_pos)]
+            b_x = b_storage[int(b_in_pos)]
+            y = fn(a_x, b_x)
+            out[int(out_pos)] = y
 
     return _zip
 
 
 def tensor_reduce(
-    fn: Callable[[float, float], float]
+    fn: Callable[[float, float], float],
 ) -> Callable[[Storage, Shape, Strides, Storage, Shape, Strides, int], None]:
     """
     Low-level implementation of tensor reduce.
@@ -340,8 +375,30 @@ def tensor_reduce(
         a_strides: Strides,
         reduce_dim: int,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError('Need to implement for Task 2.3')
+        for i in range(len(out)):
+            # Get the multidimensional index in the output
+            out_index = np.zeros(len(out_shape), dtype=np.int32)
+            to_index(i, out_shape, out_index)
+
+            # Build the base index into a_shape (same rank as a_shape)
+            a_index = np.zeros(len(a_shape), dtype=np.int32)
+            for d in range(len(a_shape)):
+                a_index[d] = out_index[d]
+
+            # Initialize accumulator with the first element along reduce_dim
+            a_index[reduce_dim] = 0
+            acc_pos = index_to_position(a_index, a_strides)
+            acc = a_storage[int(acc_pos)]
+
+            # Reduce over the rest of the elements along reduce_dim
+            for r in range(1, a_shape[reduce_dim]):
+                a_index[reduce_dim] = r
+                a_pos = index_to_position(a_index, a_strides)
+                acc = fn(acc, a_storage[int(a_pos)])
+
+            # Write accumulated value to out
+            out_pos = index_to_position(out_index, out_strides)
+            out[int(out_pos)] = acc
 
     return _reduce
 
