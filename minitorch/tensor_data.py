@@ -43,7 +43,10 @@ def index_to_position(index: Index, strides: Strides) -> int:
     Returns:
         Position in storage
     """
-    return sum(i * s for i, s in zip(index, strides))
+    res = 0
+    for i, s in zip(index, strides):
+        res += i * s
+    return np.int64(res)
 
 
 def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
@@ -63,9 +66,9 @@ def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
     #   ord % dim_d -> out_d
     #   ord // dim_d -> ord
     max_len = len(shape)
-    for n in range(max_len):
-        out_index[max_len - (n + 1)] = ordinal % shape[max_len - (n + 1)]
-        ordinal = ordinal // shape[max_len - (n + 1)]
+    for n in range(max_len - 1, -1, -1):  # backwards
+        out_index[n] = ordinal % shape[n]
+        ordinal = ordinal // shape[n]
 
 
 def broadcast_index(
